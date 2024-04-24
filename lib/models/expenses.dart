@@ -21,7 +21,7 @@ class Expenses {
   Map<String, Object?> toJson() => {
         ExpensesFields.id: id,
         ExpensesFields.amount: amount,
-        ExpensesFields.date: createdTime,
+        ExpensesFields.date: createdTime!.toIso8601String(),
       };
   //---------------------------------------------
   static Expenses fromJson(Map<String, Object?> json) => Expenses(
