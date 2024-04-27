@@ -39,12 +39,31 @@ class ExpensesDatabase {
 
   //----------------------------------------------------
   Future<Expenses> insertExpenses(Expenses expenses) async {
-    final db = await instance.database;
-    final id = await db.insert(expensesDB, expenses.toJson());
-    if (kDebugMode) {
-      print("insertExpenses:id:$id");
+    try {
+      final db = await instance.database;
+      final id = await db.insert(expensesDB, expenses.toJson());
+      if (kDebugMode) {
+        print("insertExpenses:id:$id");
+      }
+      return expenses.copy(id: id);
+    } catch (e) {
+      rethrow;
     }
-    return expenses.copy(id: id);
+  }
+
+  //----------------------------------------------------
+  Future<void> removeExpenses(Expenses expenses) async {
+    try {
+      final db = await instance.database;
+      await db.delete(
+        expensesDB,
+        where: "${ExpensesFields.id} = ?",
+        whereArgs: [expenses.id],
+      );
+    } catch (e) {
+      print("removeExpenses: error:${e.toString()}");
+      rethrow;
+    }
   }
 
   //----------------------------------------------------
@@ -66,16 +85,20 @@ class ExpensesDatabase {
     //   AND strftime('%Y', ${ExpensesFields.date}) = ?
     // ''', ['4', '2024']);
 
-    final result = await db.query(
-      expensesDB,
-      orderBy: orderBy,
-      where: where,
-      whereArgs: ['${dateTime.month}'.padLeft(2, '0'), '${dateTime.year}'],
-    );
-    if (kDebugMode) {
-      print("readAllExpenses:result:$result");
-    }
+    try {
+      final result = await db.query(
+        expensesDB,
+        orderBy: orderBy,
+        where: where,
+        whereArgs: ['${dateTime.month}'.padLeft(2, '0'), '${dateTime.year}'],
+      );
+      if (kDebugMode) {
+        print("readAllExpenses:result:$result");
+      }
 
-    return result.map((json) => Expenses.fromJson(json)).toList();
+      return result.map((json) => Expenses.fromJson(json)).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 }

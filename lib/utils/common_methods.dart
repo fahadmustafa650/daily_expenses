@@ -1,3 +1,4 @@
+import 'package:bloc_database_app/models/expenses.dart';
 import 'package:flutter/material.dart';
 
 class CommonMethods {
@@ -11,5 +12,10 @@ class CommonMethods {
         return widget;
       },
     );
+  }
+
+  //-------------------------------------------------
+  static int totalExpenses(List<Expenses> expensesList) {
+    return expensesList.fold(0, (sum, item) => sum + (item.amount ?? 0));
   }
 }

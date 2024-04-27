@@ -1,7 +1,9 @@
+import 'package:bloc_database_app/blocs/expenses_cubit/expenses_cubit.dart';
 import 'package:bloc_database_app/db/expenses_db.dart';
 import 'package:bloc_database_app/models/expenses.dart';
 import 'package:bloc_database_app/utils/common_methods.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 class AddExpensesDialog extends StatefulWidget {
@@ -94,7 +96,7 @@ class _AddExpensesDialogState extends State<AddExpensesDialog> {
                       backgroundColor: MaterialStateProperty.all(Colors.blue),
                     ),
                     onPressed: () {
-                      _addExpenses().then((value) {
+                      _addExpenses(context).then((value) {
                         widget.afterSubmit!.call();
                       });
                     },
@@ -116,7 +118,7 @@ class _AddExpensesDialogState extends State<AddExpensesDialog> {
   }
 
   //-----------------------------------------------------------
-  Future<void> _addExpenses() async {
+  Future<void> _addExpenses(BuildContext context) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -126,7 +128,8 @@ class _AddExpensesDialogState extends State<AddExpensesDialog> {
       amount: (int.parse(_amountController.text)),
       createdTime: _selectedDate ?? DateTime.now(),
     );
-    await ExpensesDatabase.instance.insertExpenses(expense);
+    context.read<ExpensesCubit>().insertData(expense);
+    // await ExpensesDatabase.instance.insertExpenses(expense);
   }
 
   //-----------------------------------------------------------

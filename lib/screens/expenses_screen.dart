@@ -1,13 +1,12 @@
 import 'package:bloc_database_app/blocs/expenses_cubit/expenses_cubit.dart';
 import 'package:bloc_database_app/common_widgets/add_expenses_dialog.dart';
-import 'package:bloc_database_app/db/expenses_db.dart';
 import 'package:bloc_database_app/utils/common_methods.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart';
+import 'package:month_year_picker/month_year_picker.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -37,7 +36,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   @override
   void dispose() {
-    ExpensesDatabase.instance.close();
+    // ExpensesDatabase.instance.close();
 
     super.dispose();
   }
@@ -50,21 +49,30 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         child: Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
-        title: GestureDetector(
-          onTap: () async {
-            final pickedDate = await showDatePicker(
-              context: context,
-              initialDate: selectedDate ?? DateTime.now(),
-              firstDate: DateTime(2015, 8),
-              lastDate: DateTime(2101),
-            );
-            print("pickedDate:${pickedDate}");
+        leading: GestureDetector(
+          onTap: () {
+            _pickedDateAndFilterData(context);
           },
-          child: Icon(
+          child: const Icon(
             Icons.calendar_month,
             color: Colors.white,
           ),
         ),
+        title: Text(
+          DateFormat.yMMMM().format(selectedDate ?? DateTime.now()),
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          BlocBuilder<ExpensesCubit, ExpensesState>(builder: (context, state) {
+            if (state is ResponsesExpensesInitial) {
+              return Text(
+                "Total: ${CommonMethods.totalExpenses(state.expensesList)} Rs",
+                style: const TextStyle(color: Colors.white, fontSize: 25.0),
+              );
+            }
+            return const SizedBox();
+          }),
+        ],
       ),
       body: Center(
         child: BlocBuilder<ExpensesCubit, ExpensesState>(
@@ -76,57 +84,111 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               return const Center(child: Text("Error Occured"));
             }
             if (state is ResponsesExpensesInitial) {
-              return ListView.builder(
-                  itemCount: state.expensesList.length,
-                  // staggeredTileBuilder: (index) => StaggeredTile.fit(2),
-                  // crossAxisCount: 2,
-                  // mainAxisSpacing: 2,
-                  // crossAxisSpacing: 2,
+              if (state.expensesList.isEmpty) {
+                return const Center(
+                  child: Text("No Expenses"),
+                );
+              }
+              return ListView.separated(
+                itemCount: state.expensesList.length,
+                // staggeredTileBuilder: (index) => StaggeredTile.fit(2),
+                // crossAxisCount: 2,
+                // mainAxisSpacing: 2,
+                // crossAxisSpacing: 2,
 
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        // await Navigator.of(context).push(MaterialPageRoute(
-                        //   builder: (context) => NoteDetailPage(noteId: note.id!),
-                        // ));
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    onTap: () {
+                      // await Navigator.of(context).push(MaterialPageRoute(
+                      //   builder: (context) => NoteDetailPage(noteId: note.id!),
+                      // ));
 
-                        // refreshExpenses();
-                      },
-                      title: Text("${state.expensesList[index].amount} Rs"),
-                      subtitle: Text(DateFormat('yyyy-MM-dd')
-                          .format(state.expensesList[index].createdTime!)),
-                    );
-                  });
+                      // refreshExpenses();
+                    },
+                    title: Text(
+                      "${state.expensesList[index].amount} Rs",
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      DateFormat('dd MMM yyyy')
+                          .format(state.expensesList[index].createdTime!),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    trailing: IconButton(
+                        onPressed: () {
+                          ctx!
+                              .read<ExpensesCubit>()
+                              .removeData(state.expensesList[index]);
+                        },
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                          size: 20.0,
+                        )),
+                  );
+                },
+                separatorBuilder: (BuildContext context, int index) {
+                  return const Divider();
+                },
+              );
             }
             // print("state:${state.runtimeType}");
-            return Container(
-              child: Text("Empty"),
-            );
+            return const SizedBox();
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          child: const Center(
-            child: Icon(
-              Icons.add,
-              color: Colors.white,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 15.0),
+        child: FloatingActionButton(
+            backgroundColor: Colors.blue,
+            child: const Center(
+              child: Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
             ),
-          ),
-          onPressed: () async {
-            CommonMethods.showMyDialog(context, AddExpensesDialog(
-              afterSubmit: () {
-                // refreshExpenses();
-                context
-                    .read<ExpensesCubit>()
-                    .fetchAllExpenses(selectedDate ?? DateTime.now());
-                Navigator.pop(context);
-              },
-            ));
+            onPressed: () async {
+              CommonMethods.showMyDialog(
+                context,
+                AddExpensesDialog(
+                  afterSubmit: () {
+                    // refreshExpenses();
+                    context
+                        .read<ExpensesCubit>()
+                        .fetchAllExpenses(selectedDate ?? DateTime.now());
+                    Navigator.pop(context);
+                  },
+                ),
+              );
 
-            // refreshExpenses();
-          }),
+              // refreshExpenses();
+            }),
+      ),
     ));
+  }
+
+  //---------------------------------------------------------
+  Future<void> _pickedDateAndFilterData(BuildContext context) async {
+    final pickedDate = await showMonthYearPicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2015, 8),
+      lastDate: DateTime(2101),
+    );
+    // if (kDebugMode) {
+    //   print("pickedDate:${pickedDate}");
+    // }
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+        context.read<ExpensesCubit>().fetchAllExpenses(pickedDate);
+      });
+    }
   }
 
   //---------------------------------------------------------
@@ -149,9 +211,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
                 // refreshExpenses();
               },
-              child: Container(
-                child: Text("expenses: ${state.expensesList[index].amount}"),
-              ),
+              child: Text("expenses: ${state.expensesList[index].amount}"),
             ),
           );
         },
